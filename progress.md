@@ -33,3 +33,17 @@
   - Executed `PYTHONPATH=src python3 -m unittest discover -s tests -v` — 20/20 PASS in 1.997s.
   - Tested clean `pip install .` in isolated virtualenv with CLI entry point verification.
   - Synchronized global skill script at `~/.gemini/antigravity/skills/heif-converter/scripts/convert.py` and skill docs.
+
+### 2026-09-08: Skeptical Review & Concurrency/Adversarial Hardening (v1.2.1)
+- **Actor:** Antigravity Subagent (Reviewer & Hardener)
+- **Actions:**
+  - Audited codebase under adversarial stress tests and identified a critical multi-threaded race condition in `batch_convert`: when multiple files across different folders shared the same basename and targeted a single output directory, concurrent workers selected identical target paths before files existed on disk, causing `sips` file rename crashes and failed conversions.
+  - Implemented pre-allocated collision-free unique path reservation in `batch_convert` via `get_unique_path(..., existing_paths=allocated_paths)`, ensuring zero race conditions between worker processes.
+  - Hardened `--profile` handling to reject non-existent profile paths with exit code 1 and an explicit error message instead of silently falling back to unmanaged color conversion.
+  - Hardened `expand_input` wildcard globbing to filter out subdirectories and non-image files, fixing `heif-converter *` in mixed directories.
+  - Added WebP to `SUPPORTED_INPUT_EXTS` to allow reading/converting WebP images supported natively by macOS `sips`.
+  - Re-exported full public API in `~/.gemini/antigravity/skills/heif-converter/scripts/convert.py` to support programmatic Python imports.
+  - Added synthetic HEIC fixture creation and test verification for ColorSync Display P3 profiling, ensuring deep live HEIC tests run across all machines and CI runners without local file dependencies.
+  - Added `jpeg-convert` entry point to `pyproject.toml` and CI verification workflow.
+  - Expanded test suite from 20 to 26 passing tests (`26/26 PASS in 2.265s`).
+

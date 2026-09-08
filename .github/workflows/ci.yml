@@ -31,6 +31,7 @@ jobs:
         heif-converter --version
         png-convert --version
         jpg-convert --version
+        jpeg-convert --version
         heic-convert --version
 
     - name: Run test suite

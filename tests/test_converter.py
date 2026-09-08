@@ -27,6 +27,7 @@ class TestHeifConverter(unittest.TestCase):
     def _create_real_sample_png(self, filename: str = "sample.png") -> str:
         """Helper to create a small valid image on macOS using sips."""
         target = os.path.join(self.test_dir, filename)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
         sys_icon = "/System/Library/CoreServices/Finder.app/Contents/Resources/Finder.icns"
         if os.path.exists(sys_icon):
             subprocess.run(["sips", "-s", "format", "png", "--resampleHeightWidth", "32", "32", sys_icon, "--out", target], capture_output=True)
@@ -35,6 +36,14 @@ class TestHeifConverter(unittest.TestCase):
             with open(target, "wb") as f:
                 f.write(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82")
         return target
+
+    def _create_real_sample_heic(self, filename: str = "sample.heic") -> str:
+        """Helper to create a real valid HEIC on macOS using sips."""
+        src_png = self._create_real_sample_png("fixture_for_heic.png")
+        target_heic = os.path.join(self.test_dir, filename)
+        os.makedirs(os.path.dirname(target_heic), exist_ok=True)
+        subprocess.run(["sips", "-s", "format", "heic", src_png, "--out", target_heic], capture_output=True)
+        return target_heic
 
     def test_get_unique_path(self):
         sample = os.path.join(self.test_dir, "photo.png")
@@ -226,6 +235,115 @@ class TestHeifConverter(unittest.TestCase):
         self.assertTrue(success_avif)
         self.assertTrue(os.path.exists(path_avif))
 
+    def test_live_synthetic_heic_to_display_p3_png(self):
+        """Deep verification: convert a real synthetic HEIC to Display P3 PNG and verify ICC profile."""
+        heic_file = self._create_real_sample_heic("synthetic.heic")
+        self.assertTrue(os.path.exists(heic_file))
+
+        out_dir = os.path.join(self.test_dir, "synthetic_heic_output")
+        success, out_path = convert_single_file(
+            file_path=heic_file,
+            target_format="png",
+            profile=PROFILE_P3,
+            output_dir=out_dir,
+            quiet=True,
+        )
+        self.assertTrue(success)
+        self.assertTrue(os.path.exists(out_path))
+
+        # Inspect resulting image profile with sips
+        res = subprocess.run(["sips", "-g", "profile", out_path], capture_output=True, text=True)
+        if os.path.exists(PROFILE_P3):
+            self.assertIn("Display P3", res.stdout)
+
+    def test_batch_convert_duplicate_basenames_collision(self):
+        """Verify parallel batch conversion handles identical basenames into same output dir without collision."""
+        dir1 = os.path.join(self.test_dir, "dir1")
+        dir2 = os.path.join(self.test_dir, "dir2")
+        out_dir = os.path.join(self.test_dir, "collision_out")
+        os.makedirs(dir1, exist_ok=True)
+        os.makedirs(dir2, exist_ok=True)
+
+        src1 = self._create_real_sample_png("dir1/photo.png")
+        src2 = self._create_real_sample_png("dir2/photo.png")
+
+        success_count, total, results = batch_convert(
+            resolved_files=[src1, src2],
+            target_format="jpg",
+            output_dir=out_dir,
+            workers=4,
+            quiet=True,
+        )
+        self.assertEqual(total, 2)
+        self.assertEqual(success_count, 2)
+        out_files = sorted(os.listdir(out_dir))
+        self.assertIn("photo.jpg", out_files)
+        self.assertIn("photo_v2.jpg", out_files)
+
+    def test_invalid_profile_handling(self):
+        """Adversarial check: ensure nonexistent profile path fails explicitly and exits non-zero."""
+        src = self._create_real_sample_png("prof_test.png")
+        fake_profile = os.path.join(self.test_dir, "nonexistent.icc")
+
+        # Directly via convert_single_file
+        success, msg = convert_single_file(
+            file_path=src,
+            target_format="png",
+            profile=fake_profile,
+            quiet=True,
+        )
+        self.assertFalse(success)
+        self.assertIn("Color profile not found", msg)
+
+        # Via CLI run
+        parser = build_parser()
+        args = parser.parse_args([src, "--profile", fake_profile, "--quiet"])
+        exit_code = run(args)
+        self.assertEqual(exit_code, 1)
+
+    def test_expand_input_glob_filtering(self):
+        """Verify wildcard glob expansion excludes subdirectories and non-image files."""
+        sub_dir = os.path.join(self.test_dir, "subfolder")
+        os.makedirs(sub_dir, exist_ok=True)
+        img_file = os.path.join(self.test_dir, "good.heic")
+        text_file = os.path.join(self.test_dir, "notes.txt")
+        with open(img_file, "w") as f:
+            f.write("mock")
+        with open(text_file, "w") as f:
+            f.write("text")
+
+        matches = expand_input(os.path.join(self.test_dir, "*"))
+        self.assertIn(img_file, matches)
+        self.assertNotIn(sub_dir, matches)
+        self.assertNotIn(text_file, matches)
+
+    def test_get_unique_path_with_allocated_set(self):
+        """Verify get_unique_path accounts for pending pre-allocated reservations."""
+        p = os.path.join(self.test_dir, "target.png")
+        allocated = set()
+
+        u1 = get_unique_path(p, existing_paths=allocated)
+        self.assertEqual(u1, p)
+        allocated.add(u1)
+
+        u2 = get_unique_path(p, existing_paths=allocated)
+        self.assertEqual(u2, os.path.join(self.test_dir, "target_v2.png"))
+        allocated.add(u2)
+
+        u3 = get_unique_path(p, existing_paths=allocated)
+        self.assertEqual(u3, os.path.join(self.test_dir, "target_v3.png"))
+
+    def test_webp_input_support(self):
+        """Verify webp is recognized as supported input."""
+        from heif_converter.core import SUPPORTED_INPUT_EXTS
+        self.assertIn("webp", [e.lower() for e in SUPPORTED_INPUT_EXTS])
+
+        webp_file = os.path.join(self.test_dir, "graphic.webp")
+        with open(webp_file, "w") as f:
+            f.write("data")
+        matches = expand_input(self.test_dir)
+        self.assertIn(webp_file, matches)
+
     def test_live_real_heic_image_if_present(self):
         real_heic = "/Users/vecsatfoxmailcom/Downloads/IMG_8017.HEIC"
         if not os.path.exists(real_heic):
@@ -324,7 +442,7 @@ class TestHeifConverter(unittest.TestCase):
     def test_bin_scripts_executable(self):
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         bin_dir = os.path.join(root_dir, "bin")
-        for script_name in ["heif-converter", "png", "jpg", "heic"]:
+        for script_name in ["heif-converter", "png", "jpg", "jpeg", "heic"]:
             script_path = os.path.join(bin_dir, script_name)
             self.assertTrue(os.path.exists(script_path), f"Missing {script_name}")
             self.assertTrue(os.access(script_path, os.X_OK), f"Not executable: {script_name}")

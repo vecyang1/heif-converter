@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-09-08
+
+### Fixed
+- **Parallel Batch Destination Collision**: Pre-allocated unique, deterministic destination paths in `batch_convert` with an active reservation set (`get_unique_path`), preventing multi-process race conditions where identical filenames across different folders collided during `sips` file rename.
+- **Color Profile Validation**: Prevented silent failure on non-existent `--profile` flags by validating profile paths and exiting with code 1 and an explicit error instead of falling back to unmanaged color conversion.
+- **Wildcard / Glob Subdirectory & Non-Image Filtering**: Hardened `expand_input` glob expansion to strictly filter for existing image files matching `SUPPORTED_INPUT_EXTS`, eliminating spurious `File not found` errors on matched subdirectories and failures on non-image files (e.g. `.DS_Store`).
+- **WebP Input Support**: Added `webp` and `WEBP` to `SUPPORTED_INPUT_EXTS` to enable native read and transcode of WebP files supported by macOS `sips`.
+- **Skill Module Export**: Exported full public API (`convert_single_file`, `batch_convert`, etc.) in global skill script `~/.gemini/antigravity/skills/heif-converter/scripts/convert.py` for Python automation imports.
+- **Pillow Handle Leak**: Ensured context-managed file closure via `with Image.open(...)` in WebP fallback encoder.
+
+### Added
+- **Synthetic HEIC CI Fixture**: Added synthetic HEIC creation and live conversion tests verifying ColorSync Display P3 profiling without relying on local developer Downloads files.
+- **Console Script Parity**: Added `jpeg-convert` entry point to `pyproject.toml` and verified in CI workflow.
+- **Expanded Test Suite**: Expanded tests from 20 to 26 unit and live integration tests covering collision safety, profile rejection, glob filtering, synthetic HEIC conversion, and WebP input.
+
 ## [1.2.0] - 2026-09-08
 
 ### Added

@@ -11,7 +11,7 @@ from .core import (
     recover_space_split_inputs,
 )
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 
 def build_parser(default_format: str = "png") -> argparse.ArgumentParser:
@@ -99,17 +99,23 @@ def run(args: argparse.Namespace) -> int:
 
     # Determine default ICC profile if not explicitly specified
     profile: Optional[str] = args.profile
-    if not profile:
+    if profile:
+        profile = os.path.abspath(os.path.expanduser(profile.strip("'\"")))
+        if not os.path.exists(profile):
+            if not args.quiet:
+                print(f"Error: Specified color profile not found: {args.profile}", file=sys.stderr)
+            return 1
+    else:
         fmt = args.format.lower()
         if fmt == "png":
-            profile = PROFILE_P3
+            profile = PROFILE_P3 if os.path.exists(PROFILE_P3) else None
         elif fmt in ["jpg", "jpeg"]:
-            profile = PROFILE_SRGB
+            profile = PROFILE_SRGB if os.path.exists(PROFILE_SRGB) else None
 
     # Determine output directory
     output_dir: Optional[str] = args.outdir
     if output_dir:
-        output_dir = os.path.abspath(os.path.expanduser(output_dir))
+        output_dir = os.path.abspath(os.path.expanduser(output_dir.strip("'\"")))
         os.makedirs(output_dir, exist_ok=True)
     elif not args.flat:
         common_dir = os.path.dirname(resolved_files[0])
@@ -145,7 +151,6 @@ def main_png() -> None:
     """Preset command entry point for PNG conversion (Display P3)."""
     parser = build_parser(default_format="png")
     args = parser.parse_args()
-    args.format = "png"
     sys.exit(run(args))
 
 
@@ -153,7 +158,13 @@ def main_jpg() -> None:
     """Preset command entry point for JPG conversion (sRGB)."""
     parser = build_parser(default_format="jpg")
     args = parser.parse_args()
-    args.format = "jpg"
+    sys.exit(run(args))
+
+
+def main_jpeg() -> None:
+    """Preset command entry point for JPEG conversion (sRGB)."""
+    parser = build_parser(default_format="jpeg")
+    args = parser.parse_args()
     sys.exit(run(args))
 
 

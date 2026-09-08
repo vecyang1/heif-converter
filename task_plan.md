@@ -9,3 +9,4 @@
 | T-005 | done | Register into 2nd Brain project registries (`project-capabilities.md`, `project-index.md`, `github-repos.md`) | 2026-09-08 | 2026-09-08 | 2026-09-08 | Antigravity |
 | T-006 | done | Relicense to AGPL-3.0-or-later and author comprehensive `CONTRIBUTING.md` | 2026-09-08 | 2026-09-08 | 2026-09-08 | Antigravity |
 | T-007 | done | Production-grade hardening: auto-mkdir, tilde/quote recovery, recursive scan, WebP bridging, 20/20 test suite, and GitHub CI | 2026-09-08 | 2026-09-08 | 2026-09-08 | Antigravity |
+| T-008 | done | Skeptical audit & hardening: concurrency collision prevention, profile validation, wildcard glob filtering, WebP input, 26/26 test suite (v1.2.1) | 2026-09-08 | 2026-09-08 | 2026-09-08 | Antigravity |

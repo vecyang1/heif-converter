@@ -22,6 +22,7 @@ SUPPORTED_INPUT_EXTS = [
     "bmp", "BMP",
     "gif", "GIF",
     "avif", "AVIF",
+    "webp", "WEBP",
 ]
 
 # Formats that macOS sips natively writes
@@ -38,14 +39,24 @@ SIPS_WRITABLE_FORMATS = {
 }
 
 
-def get_unique_path(path: str) -> str:
-    """Returns a unique file path by appending _v2, _v3, etc. if the target file exists."""
-    if not os.path.exists(path):
+def get_unique_path(path: str, existing_paths: Optional[set] = None) -> str:
+    """
+    Returns a unique file path by appending _v2, _v3, etc. if the target file
+    already exists on disk or was allocated within an existing batch reservation set.
+    """
+    def is_occupied(p: str) -> bool:
+        if os.path.exists(p):
+            return True
+        if existing_paths is not None and p in existing_paths:
+            return True
+        return False
+
+    if not is_occupied(path):
         return path
 
     base, ext = os.path.splitext(path)
     counter = 2
-    while os.path.exists(f"{base}_v{counter}{ext}"):
+    while is_occupied(f"{base}_v{counter}{ext}"):
         counter += 1
     return f"{base}_v{counter}{ext}"
 
@@ -54,6 +65,7 @@ def expand_input(item: str, recursive: bool = False) -> List[str]:
     """
     Expands one input token (directory, glob, or file) into matching image files.
     Expands user tilde (~), strips surrounding quotes, and optionally scans recursively.
+    Filters out non-image files and directories from wildcard expansions.
     """
     if not item:
         return []
@@ -62,9 +74,10 @@ def expand_input(item: str, recursive: bool = False) -> List[str]:
     if not item:
         return []
 
+    valid_exts = {e.lower() for e in SUPPORTED_INPUT_EXTS}
+
     if os.path.isdir(item):
         matches = []
-        valid_exts = {e.lower() for e in SUPPORTED_INPUT_EXTS}
         if recursive:
             for root, _, files in os.walk(item):
                 for f in files:
@@ -79,7 +92,17 @@ def expand_input(item: str, recursive: bool = False) -> List[str]:
     if os.path.isfile(item):
         return [item]
 
-    return glob.glob(item, recursive=recursive)
+    raw_matches = glob.glob(item, recursive=recursive)
+    if not raw_matches:
+        return []
+
+    filtered = []
+    for match in raw_matches:
+        if os.path.isfile(match):
+            ext = os.path.splitext(match)[1].lstrip(".").lower()
+            if ext in valid_exts:
+                filtered.append(match)
+    return sorted(list(set(filtered)))
 
 
 def recover_space_split_inputs(inputs: List[str], recursive: bool = False) -> List[str]:
@@ -153,10 +176,15 @@ def _convert_to_webp(
             cwebp_cmd = ["cwebp", "-q", "85", tmp_png, "-o", output_path]
             cwebp_res = subprocess.run(cwebp_cmd, capture_output=True, text=True)
             if cwebp_res.returncode != 0:
+                if os.path.exists(output_path):
+                    try:
+                        os.remove(output_path)
+                    except OSError:
+                        pass
                 return False, cwebp_res.stderr.strip() or "cwebp encoding error"
         else:
-            img = Image.open(tmp_png)
-            img.save(output_path, "WEBP", quality=85)
+            with Image.open(tmp_png) as img:
+                img.save(output_path, "WEBP", quality=85)
 
         return True, output_path
     finally:
@@ -174,13 +202,15 @@ def convert_single_file(
     output_dir: Optional[str] = None,
     delete_source: bool = False,
     quiet: bool = False,
+    target_output_path: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """
     Converts a single image file to the target format using macOS sips tool.
+    Accepts an optional pre-allocated target_output_path to prevent concurrency race conditions.
     Returns (success, message_or_path).
     """
     try:
-        file_path = os.path.expanduser(file_path)
+        file_path = os.path.abspath(os.path.expanduser(file_path.strip("'\"")))
         if not os.path.isfile(file_path):
             err_msg = f"File not found: {file_path}"
             if not quiet:
@@ -192,14 +222,26 @@ def convert_single_file(
         normalized_format = target_format.lower().lstrip(".")
         ext = f".{normalized_format}"
 
-        if output_dir:
-            output_dir = os.path.abspath(os.path.expanduser(output_dir))
-            os.makedirs(output_dir, exist_ok=True)
-            output_path = os.path.join(output_dir, f"{name_no_ext}{ext}")
-        else:
-            output_path = os.path.join(os.path.dirname(file_path), f"{name_no_ext}{ext}")
+        # Validate explicit profile path if provided
+        if profile:
+            profile = os.path.abspath(os.path.expanduser(profile.strip("'\"")))
+            if not os.path.exists(profile):
+                err_msg = f"Color profile not found: {profile}"
+                if not quiet:
+                    print(f"FAILED: {filename} -> {err_msg}")
+                return False, f"FAILED: {filename} -> {err_msg}"
 
-        output_path = get_unique_path(output_path)
+        if target_output_path:
+            output_path = os.path.abspath(os.path.expanduser(target_output_path.strip("'\"")))
+            parent_dir = os.path.dirname(output_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+        elif output_dir:
+            output_dir = os.path.abspath(os.path.expanduser(output_dir.strip("'\"")))
+            os.makedirs(output_dir, exist_ok=True)
+            output_path = get_unique_path(os.path.join(output_dir, f"{name_no_ext}{ext}"))
+        else:
+            output_path = get_unique_path(os.path.join(os.path.dirname(file_path), f"{name_no_ext}{ext}"))
 
         # Handle WebP format via bridging helper
         if normalized_format == "webp":
@@ -252,6 +294,7 @@ def batch_convert(
 ) -> Tuple[int, int, List[Tuple[bool, str]]]:
     """
     Executes parallel batch conversion across resolved files using ProcessPoolExecutor.
+    Pre-allocates collision-free output paths to prevent parallel worker write contention.
     Returns (success_count, total_count, results).
     """
     if not resolved_files:
@@ -260,6 +303,27 @@ def batch_convert(
     if workers is None:
         workers = os.cpu_count() or 4
 
+    if output_dir:
+        output_dir = os.path.abspath(os.path.expanduser(output_dir.strip("'\"")))
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Pre-allocate collision-free unique destination paths
+    normalized_format = target_format.lower().lstrip(".")
+    ext = f".{normalized_format}"
+    allocated_paths: set = set()
+    conversion_tasks: List[Tuple[str, str]] = []
+
+    for f in resolved_files:
+        filename = os.path.basename(f)
+        name_no_ext = os.path.splitext(filename)[0]
+        if output_dir:
+            candidate_dst = os.path.join(output_dir, f"{name_no_ext}{ext}")
+        else:
+            candidate_dst = os.path.join(os.path.dirname(f), f"{name_no_ext}{ext}")
+        unique_dst = get_unique_path(candidate_dst, existing_paths=allocated_paths)
+        allocated_paths.add(unique_dst)
+        conversion_tasks.append((f, unique_dst))
+
     if not quiet:
         print(f"🚀 Processing {len(resolved_files)} images using {workers} workers...")
 
@@ -267,14 +331,15 @@ def batch_convert(
         futures = [
             executor.submit(
                 convert_single_file,
-                f,
-                target_format,
-                profile,
-                output_dir,
-                delete_source,
-                quiet,
+                file_path=src,
+                target_format=target_format,
+                profile=profile,
+                output_dir=None,
+                delete_source=delete_source,
+                quiet=quiet,
+                target_output_path=dst,
             )
-            for f in resolved_files
+            for src, dst in conversion_tasks
         ]
         results = [f.result() for f in futures]
 
