@@ -60,6 +60,7 @@ owner:
 | `docs/strategy/` | Strategy docs, market analysis, and positioning | `docs/strategy/positioning.md` |
 | `operations/` | Repeatable runbooks, live connection routes, health checks, and cadence | `operations/runbooks/local-dev.md`, `operations/links.md`, `operations/cadence.md` |
 | `resources/` | Non-secret assets, imports, exports, research inputs | `resources/research/agoda-pricing.md` |
+| `.github/` | GitHub Actions CI workflows and contribution templates | `.github/workflows/ci.yml`, `.github/ISSUE_TEMPLATE/` |
 | `vault/sessions/` | Session evidence and operational notes | `vault/sessions/2026-06-11-init.md` |
 | `vault/research/` | Source-backed research proof | `vault/research/2026-06-11-market-scan.md` |
 | `vault/notes/` | Project-specific durable insights not yet decisions | `vault/notes/pricing-edge-cases.md` |

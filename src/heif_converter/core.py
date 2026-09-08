@@ -1,6 +1,8 @@
-import os
 import glob
+import os
+import shutil
 import subprocess
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from typing import List, Optional, Tuple
 
@@ -17,7 +19,23 @@ SUPPORTED_INPUT_EXTS = [
     "jpeg", "JPEG",
     "tiff", "TIFF",
     "tif", "TIF",
+    "bmp", "BMP",
+    "gif", "GIF",
+    "avif", "AVIF",
 ]
+
+# Formats that macOS sips natively writes
+SIPS_WRITABLE_FORMATS = {
+    "png": "png",
+    "jpg": "jpeg",
+    "jpeg": "jpeg",
+    "tiff": "tiff",
+    "tif": "tiff",
+    "bmp": "bmp",
+    "gif": "gif",
+    "heic": "heic",
+    "avif": "avif",
+}
 
 
 def get_unique_path(path: str) -> str:
@@ -32,40 +50,121 @@ def get_unique_path(path: str) -> str:
     return f"{base}_v{counter}{ext}"
 
 
-def expand_input(item: str) -> List[str]:
-    """Expands one input token (directory, glob, or file) into matching image files."""
+def expand_input(item: str, recursive: bool = False) -> List[str]:
+    """
+    Expands one input token (directory, glob, or file) into matching image files.
+    Expands user tilde (~), strips surrounding quotes, and optionally scans recursively.
+    """
+    if not item:
+        return []
+
+    item = os.path.expanduser(item.strip("'\""))
+    if not item:
+        return []
+
     if os.path.isdir(item):
         matches = []
-        for ext in SUPPORTED_INPUT_EXTS:
-            matches.extend(glob.glob(os.path.join(item, f"*.{ext}")))
-        return matches
-    return glob.glob(item, recursive=True)
+        valid_exts = {e.lower() for e in SUPPORTED_INPUT_EXTS}
+        if recursive:
+            for root, _, files in os.walk(item):
+                for f in files:
+                    ext = os.path.splitext(f)[1].lstrip(".").lower()
+                    if ext in valid_exts:
+                        matches.append(os.path.join(root, f))
+        else:
+            for ext in SUPPORTED_INPUT_EXTS:
+                matches.extend(glob.glob(os.path.join(item, f"*.{ext}")))
+        return sorted(list(set(matches)))
+
+    if os.path.isfile(item):
+        return [item]
+
+    return glob.glob(item, recursive=recursive)
 
 
-def recover_space_split_inputs(inputs: List[str]) -> List[str]:
+def recover_space_split_inputs(inputs: List[str], recursive: bool = False) -> List[str]:
     """
     Rejoins adjacent shell-split tokens when they form an existing file or directory path.
     Essential for unquoted arguments containing spaces (e.g., `png /path/IMG_8017 2.HEIC`).
     """
+    cleaned_inputs = [token.strip("'\"") for token in inputs if token.strip("'\"")]
     recovered = []
     index = 0
 
-    while index < len(inputs):
+    while index < len(cleaned_inputs):
         matched = None
-        for end in range(len(inputs), index, -1):
-            candidate = " ".join(inputs[index:end])
-            if expand_input(candidate):
+        for end in range(len(cleaned_inputs), index, -1):
+            candidate = " ".join(cleaned_inputs[index:end])
+            expanded = expand_input(candidate, recursive=recursive)
+            if expanded:
                 matched = candidate
                 index = end
                 break
 
         if matched is None:
-            recovered.append(inputs[index])
+            recovered.append(cleaned_inputs[index])
             index += 1
         else:
             recovered.append(matched)
 
     return recovered
+
+
+def _convert_to_webp(
+    source_file: str,
+    output_path: str,
+    profile: Optional[str] = None,
+) -> Tuple[bool, str]:
+    """
+    Converts an image to WebP format.
+    Because macOS sips cannot write webp natively, this converts via an intermediate
+    ColorSync-processed PNG using cwebp (if available) or Pillow.
+    """
+    has_cwebp = shutil.which("cwebp") is not None
+    try:
+        from PIL import Image  # type: ignore
+        has_pillow = True
+    except ImportError:
+        has_pillow = False
+
+    if not has_cwebp and not has_pillow:
+        return False, (
+            "Target format 'webp' is not natively writable by macOS sips. "
+            "Please install 'cwebp' (`brew install webp`) or 'Pillow' (`pip install pillow`) to export WebP."
+        )
+
+    # Step 1: Render intermediate lossless PNG with ColorSync profile via sips
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+        tmp_png = tmp_file.name
+
+    try:
+        cmd_intermediate = ["sips", "-s", "format", "png"]
+        if profile and os.path.exists(profile):
+            cmd_intermediate.extend(["--matchTo", profile])
+        cmd_intermediate.extend([source_file, "--out", tmp_png])
+
+        sips_res = subprocess.run(cmd_intermediate, capture_output=True, text=True)
+        if sips_res.returncode != 0:
+            err = sips_res.stderr.strip() or sips_res.stdout.strip() or "intermediate sips error"
+            return False, err
+
+        # Step 2: Encode to WebP
+        if has_cwebp:
+            cwebp_cmd = ["cwebp", "-q", "85", tmp_png, "-o", output_path]
+            cwebp_res = subprocess.run(cwebp_cmd, capture_output=True, text=True)
+            if cwebp_res.returncode != 0:
+                return False, cwebp_res.stderr.strip() or "cwebp encoding error"
+        else:
+            img = Image.open(tmp_png)
+            img.save(output_path, "WEBP", quality=85)
+
+        return True, output_path
+    finally:
+        if os.path.exists(tmp_png):
+            try:
+                os.remove(tmp_png)
+            except OSError:
+                pass
 
 
 def convert_single_file(
@@ -81,31 +180,49 @@ def convert_single_file(
     Returns (success, message_or_path).
     """
     try:
+        file_path = os.path.expanduser(file_path)
+        if not os.path.isfile(file_path):
+            err_msg = f"File not found: {file_path}"
+            if not quiet:
+                print(f"FAILED: {err_msg}")
+            return False, err_msg
+
         filename = os.path.basename(file_path)
         name_no_ext = os.path.splitext(filename)[0]
-        normalized_format = target_format.lower()
-        sips_format = "jpeg" if normalized_format == "jpg" else normalized_format
+        normalized_format = target_format.lower().lstrip(".")
         ext = f".{normalized_format}"
 
         if output_dir:
+            output_dir = os.path.abspath(os.path.expanduser(output_dir))
+            os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join(output_dir, f"{name_no_ext}{ext}")
         else:
             output_path = os.path.join(os.path.dirname(file_path), f"{name_no_ext}{ext}")
 
         output_path = get_unique_path(output_path)
 
-        cmd = ["sips", "-s", "format", sips_format]
-        if profile and os.path.exists(profile):
-            cmd.extend(["--matchTo", profile])
+        # Handle WebP format via bridging helper
+        if normalized_format == "webp":
+            success, result_str = _convert_to_webp(file_path, output_path, profile)
+            if not success:
+                if not quiet:
+                    print(f"FAILED: {filename} -> {result_str}")
+                return False, f"FAILED: {filename} -> {result_str}"
+        else:
+            # Map format for sips
+            sips_format = SIPS_WRITABLE_FORMATS.get(normalized_format, normalized_format)
+            cmd = ["sips", "-s", "format", sips_format]
+            if profile and os.path.exists(profile):
+                cmd.extend(["--matchTo", profile])
 
-        cmd.extend([file_path, "--out", output_path])
+            cmd.extend([file_path, "--out", output_path])
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            err_msg = result.stderr.strip() or "sips error"
-            if not quiet:
-                print(f"FAILED: {filename} -> {err_msg}")
-            return False, f"FAILED: {filename} -> {err_msg}"
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                err_msg = result.stderr.strip() or result.stdout.strip() or "sips error"
+                if not quiet:
+                    print(f"FAILED: {filename} -> {err_msg}")
+                return False, f"FAILED: {filename} -> {err_msg}"
 
         out_name = os.path.basename(output_path)
         if not quiet:
@@ -137,6 +254,9 @@ def batch_convert(
     Executes parallel batch conversion across resolved files using ProcessPoolExecutor.
     Returns (success_count, total_count, results).
     """
+    if not resolved_files:
+        return 0, 0, []
+
     if workers is None:
         workers = os.cpu_count() or 4
 

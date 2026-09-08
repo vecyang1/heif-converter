@@ -9,16 +9,16 @@
 
 - Project: 26.09.08-heif-converter
 - Summary: High-performance multi-threaded HEIF/HEIC/HIF to PNG/JPG converter for macOS with Display P3 & sRGB ColorSync ICC profiling, unquoted whitespace-resilient path recovery, and non-destructive versioning.
-- Current phase: Release & Registry Integration
-- Last updated: 2026-09-08 20:30 by Gemini 3.8 Flash (High) (Antigravity IDE)
+- Current phase: Production Hardened & Released (v1.2.0)
+- Last updated: 2026-09-08 21:55 by Antigravity Subagent (Coding Worker)
 - Health: GREEN
 - Existing docs found before init: 0
 
 ## Current Goal
 
-- North star: Deliver a production-grade, open-source macOS HEIF converter CLI and Python package published to GitHub (`vecyang1/heif-converter`) and registered in Notion Product[OS] and 2nd Brain.
-- Near-term outcome: Maintain full test coverage (9/9 passing), git push to GitHub remote, create Notion Product[OS] card, and register in 2nd Brain registries.
-- Constraints: Native macOS `sips` execution; ICC profile support for Display P3 and sRGB.
+- North star: Maintain a production-grade, reciprocal open-source (AGPL-3.0) macOS HEIF converter CLI and Python package published to GitHub (`vecyang1/heif-converter`) and registered in Notion Product[OS] and 2nd Brain.
+- Near-term outcome: 20/20 unit/adversarial tests passing; GitHub CI matrix across Python 3.9-3.13; git push origin main and publish release v1.2.0.
+- Constraints: Native macOS `sips` execution; ICC profile support for Display P3 and sRGB; zero mandatory external pip dependencies.
 
 ## Source Pointers
 

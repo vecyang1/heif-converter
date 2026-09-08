@@ -1,8 +1,8 @@
 # Handoff: 26.09.08-heif-converter
 
-- **Current Status:** Core packaging, testing (9/9 passing), and documentation completed. Ready for GitHub push and registry integration.
-- **Active Task:** T-003 (Publish to GitHub `vecyang1/heif-converter`).
+- **Current Status:** v1.2.0 production-hardened release complete. Published to GitHub (`vecyang1/heif-converter`), reciprocal AGPL-3.0-or-later licensed, registered in Notion Product[OS] and 2nd Brain capabilities registry. All 20 unit, integration, and adversarial tests passing.
+- **Active Task:** All planned tasks (T-001 through T-007) done.
 - **Next Actor Action:**
-  1. Initialize git repo, commit files, and create public repo via `gh repo create vecyang1/heif-converter`.
-  2. Create page in Notion Product[OS] database.
-  3. Register into 2nd Brain capabilities and project index.
+  1. Monitor GitHub Actions CI workflows on future community pull requests.
+  2. If community contributors request camera color curves for Fuji / Canon / Nikon, review according to `CONTRIBUTING.md`.
+
