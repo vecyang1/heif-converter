@@ -1,10 +1,11 @@
 # heif-converter
 
+[![CI](https://github.com/vecyang1/heif-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/vecyang1/heif-converter/actions)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-lightgrey.svg)](https://apple.com)
 [![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-brightgreen.svg)](https://python.org)
 
-High-performance, multi-threaded HEIF / HEIC / HIF to PNG / JPG batch converter for macOS. Features native **ColorSync ICC color management** (Display P3 & sRGB), automatic unquoted whitespace-resilient path recovery, and non-destructive versioning.
+High-performance, multi-threaded HEIF / HEIC / HIF to PNG / JPG / WebP / AVIF batch converter for macOS. Features native **ColorSync ICC color management** (Display P3 & sRGB), automatic unquoted whitespace-resilient path recovery, and non-destructive versioning.
 
 Designed specifically for photographers, videographers, and creators working with **Sony A7S3 / A7M4** (10-bit HIF) and **Apple iPhone** (HEIC/ProRAW) media destined for AI upscaling (Topaz Photo AI), social sharing, or archival.
 
@@ -111,10 +112,19 @@ heif-converter --format jpg /Users/username/Downloads/IMG_3618.HEIC
 ### 3. Advanced Options
 
 ```bash
+# Recursively scan photo directories
+heif-converter -r /path/to/photos
+
+# Convert to modern WebP with ColorSync profiling
+heif-converter --format webp /path/to/image.heic
+
+# Convert to AVIF
+heif-converter --format avif /path/to/image.heic
+
 # Output directly into the same directory as input (no subfolder)
 heif-converter --flat /path/to/image.heic
 
-# Specify custom output directory
+# Specify custom output directory (auto-creates if missing)
 heif-converter --outdir /path/to/output /path/to/image.heic
 
 # Delete original files after successful conversion
@@ -136,6 +146,9 @@ heif-converter --profile "/path/to/custom_profile.icc" /path/to/image.heic
 | **HIF / HEIF** | BT.2020 / HDR | 10-bit | Rec.2020 HLG | Direct viewing on Mac/iOS HDR displays |
 | **PNG** | Display P3 | Lossless 8/16-bit | `/System/Library/ColorSync/Profiles/Display P3.icc` | **Topaz Photo AI, Archiving, Apple Screens** |
 | **JPG** | sRGB | 8-bit | `/System/Library/ColorSync/Profiles/sRGB Profile.icc` | **WeChat, LINE, Web, Legacy displays** |
+| **WebP** | sRGB / Display P3 | Compressed | Preserved ICC | **Modern Web, Low Bandwidth** |
+| **AVIF** | sRGB / Display P3 | 8/10-bit | Preserved ICC | **Next-Gen Web & Mobile Platforms** |
+| **TIFF** | sRGB / Display P3 | Lossless 8/16-bit | Preserved ICC | **Print & Deep Archival Pipelines** |
 
 ---
 

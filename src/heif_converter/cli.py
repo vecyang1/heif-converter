@@ -11,11 +11,19 @@ from .core import (
     recover_space_split_inputs,
 )
 
+__version__ = "1.2.0"
+
 
 def build_parser(default_format: str = "png") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Professional Image Converter (Multi-threaded & Color Managed via macOS ColorSync)",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-v", "--version",
+        action="version",
+        version=f"heif-converter {__version__}",
+        help="Show program's version number and exit",
     )
     parser.add_argument(
         "inputs",
@@ -25,8 +33,13 @@ def build_parser(default_format: str = "png") -> argparse.ArgumentParser:
     parser.add_argument(
         "--format",
         default=default_format,
-        choices=["png", "jpg", "jpeg", "tiff", "webp"],
+        choices=["png", "jpg", "jpeg", "tiff", "heic", "avif", "bmp", "gif", "webp"],
         help="Target image format",
+    )
+    parser.add_argument(
+        "-r", "--recursive",
+        action="store_true",
+        help="Recursively scan subdirectories for matching images",
     )
     parser.add_argument(
         "--profile",
@@ -61,13 +74,23 @@ def build_parser(default_format: str = "png") -> argparse.ArgumentParser:
 
 
 def run(args: argparse.Namespace) -> int:
-    # Resolve inputs (recovering unquoted paths with spaces)
-    recovered_inputs = recover_space_split_inputs(args.inputs)
+    # Resolve inputs (recovering unquoted paths with spaces, expanding tilde and quotes)
+    recursive = getattr(args, "recursive", False)
+    recovered_inputs = recover_space_split_inputs(args.inputs, recursive=recursive)
     resolved_files: List[str] = []
-    for item in recovered_inputs:
-        resolved_files.extend(expand_input(item))
+    unmatched_inputs: List[str] = []
 
-    resolved_files = sorted(list(set([os.path.abspath(f) for f in resolved_files])))
+    for item in recovered_inputs:
+        expanded = expand_input(item, recursive=recursive)
+        if expanded:
+            resolved_files.extend(expanded)
+        else:
+            unmatched_inputs.append(item)
+
+    resolved_files = sorted(list(set([os.path.abspath(os.path.expanduser(f)) for f in resolved_files])))
+
+    if unmatched_inputs and not args.quiet:
+        print(f"⚠️ Warning: The following input(s) did not match any supported images: {unmatched_inputs}", file=sys.stderr)
 
     if not resolved_files:
         if not args.quiet:
@@ -85,12 +108,14 @@ def run(args: argparse.Namespace) -> int:
 
     # Determine output directory
     output_dir: Optional[str] = args.outdir
-    if not output_dir and not args.flat:
+    if output_dir:
+        output_dir = os.path.abspath(os.path.expanduser(output_dir))
+        os.makedirs(output_dir, exist_ok=True)
+    elif not args.flat:
         common_dir = os.path.dirname(resolved_files[0])
         if all(os.path.dirname(f) == common_dir for f in resolved_files):
             output_dir = os.path.join(common_dir, f"converted_{args.format}")
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
 
     success_count, total, _ = batch_convert(
         resolved_files=resolved_files,
@@ -107,7 +132,7 @@ def run(args: argparse.Namespace) -> int:
         if output_dir:
             print(f"📂 Output location: {output_dir}")
 
-    return 0 if success_count == total else (0 if success_count > 0 else 1)
+    return 0 if (total > 0 and success_count == total) else 1
 
 
 def main() -> None:

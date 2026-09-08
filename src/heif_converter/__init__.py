@@ -3,7 +3,7 @@ heif-converter: Professional High-Performance HEIF/HEIC/HIF to PNG/JPG Converter
 Multi-threaded, space-resilient, with native Display P3 / sRGB ColorSync ICC profiling.
 """
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 __author__ = "V"
 
 from .core import (

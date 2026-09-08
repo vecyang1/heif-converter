@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "heif-converter"
-version = "1.1.2"
+version = "1.2.0"
 description = "High-performance multi-threaded HEIF/HEIC/HIF to PNG/JPG converter for macOS with Display P3 & sRGB color management"
 readme = "README.md"
 authors = [{ name = "V" }]
@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Graphics :: Graphics Conversion",
 ]
 dependencies = []
@@ -33,6 +34,7 @@ dependencies = []
 heif-converter = "heif_converter.cli:main"
 png-convert = "heif_converter.cli:main_png"
 jpg-convert = "heif_converter.cli:main_jpg"
+heic-convert = "heif_converter.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
