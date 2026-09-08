@@ -1,6 +1,6 @@
 # heif-converter
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-lightgrey.svg)](https://apple.com)
 [![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-brightgreen.svg)](https://python.org)
 
@@ -149,6 +149,17 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 ---
 
+## 🤝 Contributing & Community Reciprocation
+
+We welcome contributions from photographers, creators, and developers! 
+
+This repository is licensed under **AGPL-3.0-or-later** to guarantee that modifications, new camera color curves (Sony, Canon, Nikon, Fuji), and upstream performance fixes remain freely available to the entire community:
+- Anyone who modifies and distributes this software or incorporates it into a network service/API must share their improvements under the same AGPL-3.0 terms.
+- Please see [CONTRIBUTING.md](CONTRIBUTING.md) for local testing instructions and PR guidelines.
+
+---
+
 ## 📄 License
 
-[MIT](LICENSE) © 2026 V
+GNU Affero General Public License v3.0 or later ([AGPL-3.0-or-later](LICENSE)) © 2026 V
+

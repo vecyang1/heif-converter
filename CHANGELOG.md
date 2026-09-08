@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-08
+
+### Added
+- Comprehensive contribution guide `CONTRIBUTING.md` detailing camera color curve profiles, local testing, and PR submission workflow.
+
+### Changed
+- Relicensed to GNU Affero General Public License v3.0 or later (**AGPL-3.0-or-later**) to ensure reciprocal open source ("copyleft / share-alike"), requiring modified distributed or hosted versions to contribute back their improvements.
+- Updated `pyproject.toml` and `README.md` metadata and badges.
+
 ## [1.1.2] - 2026-09-08
 
 ### Added
