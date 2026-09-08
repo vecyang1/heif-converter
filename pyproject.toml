@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heif-converter"
+version = "1.1.2"
+description = "High-performance multi-threaded HEIF/HEIC/HIF to PNG/JPG converter for macOS with Display P3 & sRGB color management"
+readme = "README.md"
+authors = [{ name = "V" }]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+keywords = ["heif", "heic", "hif", "converter", "colorsync", "display-p3", "srgb", "sony-a7s3", "iphone"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+]
+dependencies = []
+
+[project.scripts]
+heif-converter = "heif_converter.cli:main"
+png-convert = "heif_converter.cli:main_png"
+jpg-convert = "heif_converter.cli:main_jpg"
+
+[tool.setuptools.packages.find]
+where = ["src"]
