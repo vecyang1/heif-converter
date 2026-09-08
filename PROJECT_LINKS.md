@@ -7,7 +7,8 @@
 - **GitHub Repository (Public, MIT):**
   https://github.com/vecyang1/heif-converter
 - **Notion Product Database (Product[OS]):**
-  Page: `HEIF Converter`
+  Page: `HEIF Converter` (ID: `3d5e1b43-2393-8194-8c3f-daaa35802063`)
+  URL: https://app.notion.com/p/HEIF-Converter-3d5e1b43239381948c3fdaaa35802063
 - **Global Agent Skill:**
   `~/.gemini/antigravity/skills/heif-converter/SKILL.md`
 - **Central Capability Card (2nd Brain):**
