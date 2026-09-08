@@ -8,3 +8,4 @@
 | D-002 | ColorSync ICC Profile Defaults | 2026-09-08 | Accepted | Map PNG exports to Display P3 by default to preserve wide gamut color; map JPG exports to sRGB to ensure universal device compatibility. |
 | D-003 | Non-destructive Versioning | 2026-09-08 | Accepted | Use `_v2`, `_v3` suffixes when target output exists instead of silently overwriting user media. |
 | D-004 | Shell Space Recovery | 2026-09-08 | Accepted | Implement greedy re-joining of space-split tokens in Python so unquoted file paths containing spaces resolve cleanly. |
+| D-005 | Relicense to AGPL-3.0-or-later | 2026-09-08 | Accepted | Relicensed from MIT to GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later) to enforce reciprocal open source ("copyleft / share-alike"), aligning with 2nd Brain decisions D-107 & D-109 for shareable tools. Closes SaaS/network loop and guarantees any enhancements contributed back. |

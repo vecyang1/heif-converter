@@ -4,7 +4,7 @@
 
 ## Where the other halves live
 
-- **GitHub Repository (Public, MIT):**
+- **GitHub Repository (Public, AGPL-3.0):**
   https://github.com/vecyang1/heif-converter
 - **Notion Product Database (Product[OS]):**
   Page: `HEIF Converter` (ID: `3d5e1b43-2393-8194-8c3f-daaa35802063`)

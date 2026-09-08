@@ -21,6 +21,7 @@ durable path that future humans or agents must understand.
 | `handoff.md` | Latest resume card with next actor/action | Permanent history |
 | `decisions.md` | Durable decisions and supersession | Session proof |
 | `CHANGELOG.md` | Release-level or user-visible changes when needed | Every agent step |
+| `CONTRIBUTING.md` | Community contribution guidelines, local test commands, PR workflow, AGPL reciprocation policy | Live project status or secrets |
 
 ## Skill Routing
 

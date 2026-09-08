@@ -8,7 +8,7 @@ version = "1.1.2"
 description = "High-performance multi-threaded HEIF/HEIC/HIF to PNG/JPG converter for macOS with Display P3 & sRGB color management"
 readme = "README.md"
 authors = [{ name = "V" }]
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.8"
 keywords = ["heif", "heic", "hif", "converter", "colorsync", "display-p3", "srgb", "sony-a7s3", "iphone"]
 classifiers = [
@@ -16,7 +16,7 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
