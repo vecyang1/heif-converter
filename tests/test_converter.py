@@ -345,7 +345,7 @@ class TestHeifConverter(unittest.TestCase):
         self.assertIn(webp_file, matches)
 
     def test_live_real_heic_image_if_present(self):
-        real_heic = "/Users/vecsatfoxmailcom/Downloads/IMG_8017.HEIC"
+        real_heic = os.path.expanduser("~/Downloads/IMG_8017.HEIC")
         if not os.path.exists(real_heic):
             self.skipTest("Real iPhone HEIC file not present on this machine")
 

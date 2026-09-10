@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Color Profile Validation**: Prevented silent failure on non-existent `--profile` flags by validating profile paths and exiting with code 1 and an explicit error instead of falling back to unmanaged color conversion.
 - **Wildcard / Glob Subdirectory & Non-Image Filtering**: Hardened `expand_input` glob expansion to strictly filter for existing image files matching `SUPPORTED_INPUT_EXTS`, eliminating spurious `File not found` errors on matched subdirectories and failures on non-image files (e.g. `.DS_Store`).
 - **WebP Input Support**: Added `webp` and `WEBP` to `SUPPORTED_INPUT_EXTS` to enable native read and transcode of WebP files supported by macOS `sips`.
-- **Skill Module Export**: Exported full public API (`convert_single_file`, `batch_convert`, etc.) in global skill script `~/.gemini/antigravity/skills/heif-converter/scripts/convert.py` for Python automation imports.
+- **Skill Module Export**: Exported full public API (`convert_single_file`, `batch_convert`, etc.) in `scripts/convert.py` for Python automation imports.
 - **Pillow Handle Leak**: Ensured context-managed file closure via `with Image.open(...)` in WebP fallback encoder.
 
 ### Added
@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Executable binary wrappers in `bin/` (`bin/heif-converter`, `bin/png`, `bin/jpg`, `bin/heic`).
 - Comprehensive unit and integration test suite in `tests/test_converter.py` covering path recovery, mock sips commands, live sips execution, and collision avoidance.
 - V.A.U.L.T. method project governance and architecture documentation.
-- Project registration into Notion Product[OS] and 2nd Brain capabilities registry.
+- Project registration into project capabilities registry.
 
 ### Changed
 - Refactored core logic into `heif_converter.core` and `heif_converter.cli` with clean programmatic interfaces (`batch_convert`, `convert_single_file`).

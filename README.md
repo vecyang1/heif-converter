@@ -89,13 +89,13 @@ Best for AI upscaling, archival, and viewing on Retina / P3 displays.
 
 ```bash
 # Using the shortcut:
-png /Users/username/Downloads/IMG_3618.HEIC
+png ./photos/IMG_3618.HEIC
 
 # Unquoted paths with spaces are automatically recovered:
-png /Users/username/Downloads/IMG 8017 2.HEIC
+png ./photos/IMG\ 8017\ 2.HEIC
 
 # Entire folders:
-png /Users/username/Pictures/Sony_A7S3_HIF/
+png ./photos/Sony_A7S3_HIF/
 ```
 
 ### 2. Convert to Compatible JPG (sRGB)
@@ -103,10 +103,10 @@ Best for messaging apps, web publishing, or legacy screens.
 
 ```bash
 # Using the shortcut:
-jpg /Users/username/Downloads/IMG_3618.HEIC
+jpg ./photos/IMG_3618.HEIC
 
 # Direct CLI:
-heif-converter --format jpg /Users/username/Downloads/IMG_3618.HEIC
+heif-converter --format jpg ./photos/IMG_3618.HEIC
 ```
 
 ### 3. Advanced Options
