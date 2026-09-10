@@ -51,3 +51,19 @@ converted_jpg/
 converted_jpeg/
 converted_webp/
 converted_tiff/
+
+# Private agent context & constitutional files
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+CODEX.md
+VAULT.md
+progress.md
+task_plan.md
+handoff.md
+decisions.md
+FILE_MAP_INDEX.md
+PROJECT_LINKS.md
+MEMORY.md
+operations/
+vault/
